@@ -13,6 +13,30 @@ per-file diff commands.
 
 ## [Unreleased]
 
+### Fork changes (tuned for US job seekers)
+
+This is a fork of [Mads Lorentzen's ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
+(MIT), retuned for the US market. Changes layered on top of upstream:
+
+- **Two-axis job evaluation (Fit + Target)** - `04-job-evaluation.md` splits scoring into a
+  *Fit* axis (can you do the job) and a *Target* axis (how much you'd want it), with a blended
+  Overall. Target is a deterministic six-dimension score (salary/total-comp, industry,
+  role subcategory, company reputation, size/stage, work-life balance) built to keep rankings
+  repeatable rather than vibe-based. Propagated into `/rank` and `/apply`; all weights, salary
+  anchors, and preferences ship as placeholders configured via `/setup`.
+- **Suppression-based de-duplication** - a `suppression.yaml` (shipped as
+  `suppression.example.yaml`) replaces fragile URL/seen-jobs dedup with company-level cooldowns
+  and permanent per-role blocks, self-updating from `/outcome`, `/scrape`, and `/rank`. Includes
+  a work-authorization / no-sponsorship hard-skip gate.
+- **Consolidated base resume** - a tagged master-resume source (`master_resume_consolidated`,
+  shipped as `.example.md`) with mandatory/optional line tagging that `/apply` draws from.
+- **Custom single-column CV template** - `cv/main_example.tex` replaces the moderncv template
+  with a clean single-column (Calibri-style) layout.
+- **Extended `/setup`** - onboards the scoring weights/anchors, suppression preferences, and the
+  consolidated base resume, with a prompt to review the scoring & dedup logic before first use.
+
+### Inherited from upstream
+
 - **Custom templates: any compile-to-PDF toolchain (Typst, ...)** - `/add-template` no longer
   hardcodes a `lualatex`/`xelatex`/`pdflatex` engine enum. Custom templates now declare a
   source extension and a full compile command, so Typst (`typst compile`) registers the same

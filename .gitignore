@@ -65,6 +65,7 @@ cover_letters/Cover_*.*
 
 # documents/ subfolder contents are personal — only README and folder structure are tracked
 documents/cv/**
+!documents/cv/master_resume_consolidated.example.md
 documents/linkedin/**
 documents/diplomas/**
 documents/references/**
@@ -77,6 +78,9 @@ documents/interview/**
 
 # Personal job search tracking
 job_search_tracker.csv
+
+# Suppression / cooldown list is personal; the template ships as suppression.example.yaml
+suppression.yaml
 
 # Gmail sync state (message IDs, subjects - personal data)
 gmail_sync/

@@ -338,13 +338,13 @@ Write the full candidate profile with structured sections: Identity, Education, 
 ### 3. Populate `02-behavioral-profile.md` *(Path B and C; skip if Path A populated it)*
 Write the behavioral profile based on assessment results or synthesized answers.
 
-### 4. Update `04-job-evaluation.md` *(Path B and C; skip if Path A populated it)*
-Replace skill match areas with the user's actual skills:
-- Strong match areas: [their primary skills]
-- Moderate match areas: [their secondary skills]
-- Weak match areas: [skills they lack]
-
-Update career goals and motivation filters with their actual preferences.
+### 4. Configure `04-job-evaluation.md` (the two-axis Fit/Target framework) *(all paths)*
+`04` ships with **placeholders and neutral defaults** for every scoring choice. Walk the user through setting them (a `/setup --section scoring` re-run updates just this), then write their answers into `04`. Tell the user these are *their* preferences and invite them to review `04` directly afterward.
+- **Fit — skill/experience match:** strong / moderate / weak **skill match areas** (`[YOUR_PRIMARY_SKILLS]` etc.), **experience domains**, energizing/draining tasks, career direction.
+- **Weights (`[SET %]`):** confirm each Fit dimension weight and each Target dimension weight (each group sums to 100), plus the **Overall Fit-vs-Target blend** (default 50/50).
+- **Salary anchors:** `[YOUR_CURRENT_TOTAL_COMP]`, `[COMP_FOR_TOP_SCORE]`, `[YOUR_MINIMUM_TOTAL_COMP]`.
+- **Target preferences:** Industry tiers (`[YOUR_TOP_INDUSTRIES]` …), Job-Subcategory role-type **scores/ordering** (`[SET score]` per role type), and Reputation / Size / WLB preferences.
+- **Hard-skip gate:** work-authorization needs, location constraints, excluded industries, minimum company size (`[SET_...]`).
 
 ### 5. Update `05-cv-templates.md` *(Path B and C; skip if Path A populated it)*
 Add role-specific profile statement templates based on their background.
@@ -367,6 +367,17 @@ Replace all placeholder tokens in the search queries file with the user's actual
   - Priority 3: Adjacent roles they could pivot into
   - Priority 4: Broader roles (wider net)
 
+### 9. Generate `suppression.yaml` (dedup / cooldown list)
+Copy `suppression.example.yaml` → `suppression.yaml` (gitignored) and set it up with the user:
+- Confirm or adjust the **cooldown policy** (reasons → months; e.g. how long to skip a company that ghosted them).
+- Seed any **hard deal-breaker companies** (`BlackList`) or firms known not to sponsor (`Not Sponsor`), plus any specific roles to never re-surface. Leave the lists empty if none yet — `/outcome`, `/scrape`, and `/rank` populate them over time.
+
+### 10. Build the consolidated base resume (`documents/cv/master_resume_consolidated.md`)
+Using the format in `documents/cv/master_resume_consolidated.example.md`, build the user's single **base resume** from their `documents/` (CVs, LinkedIn) — the content bank every tailored CV is drawn from:
+- Merge their material into one document; tag situational items `(Optional)` and leave mandatory ones untagged.
+- Note any role-lean variants (e.g. backend vs data) so `/apply` can pick per posting.
+This file is gitignored (personal); `/apply` reads it as the CV's base content.
+
 ---
 
 ## Step 4: Confirm & Next Steps
@@ -378,16 +389,20 @@ Present a summary:
 > - `CLAUDE.md` - Your full candidate profile
 > - `.claude/skills/job-application-assistant/01-candidate-profile.md` - Structured profile
 > - `.claude/skills/job-application-assistant/02-behavioral-profile.md` - Behavioral assessment
-> - `.claude/skills/job-application-assistant/04-job-evaluation.md` - Personalized evaluation framework
+> - `.claude/skills/job-application-assistant/04-job-evaluation.md` - Two-axis Fit/Target evaluation framework (your weights, anchors & preferences)
 > - `.claude/skills/job-application-assistant/05-cv-templates.md` - CV templates with your profile statements
 > - `.claude/skills/job-application-assistant/07-interview-prep.md` - STAR examples from your experience
 > - `cv/main_example.tex` - Your LaTeX CV template
 > - `.claude/skills/job-scraper/search-queries.md` - Job search queries for `/scrape`
+> - `suppression.yaml` - Your dedup / cooldown list
+> - `documents/cv/master_resume_consolidated.md` - Your consolidated base resume
+>
+> **Before your first `/rank` or `/apply`, review your scoring & dedup:** open `04-job-evaluation.md` to sanity-check the weights, salary anchors, and category scores you set, and `suppression.yaml` for your deal-breakers.
 >
 > **Try it out:**
 > - Run `/scrape` to search for matching jobs right now
 > - Run `/apply` with a job posting URL to see the full application workflow
-> - Run `/setup --section search` later to update your search queries as your priorities evolve
+> - Run `/setup --section search` to update search queries, or `/setup --section scoring` to retune the evaluation framework
 
 If Path A left any STAR stubs in `07-interview-prep.md`, also note:
 

@@ -1,7 +1,9 @@
 """Every local image referenced by README.md must exist in the repo.
 
-A broken header image on the repo landing page is a silent, high-visibility
-failure; this guard turns it into a red CI run instead.
+A broken image on the repo landing page is a silent, high-visibility
+failure; this guard turns it into a red CI run instead. This fork ships no
+local header image (the upstream mascot was removed), so the guard only
+checks that whatever local images the README *does* reference resolve.
 """
 import re
 import unittest
@@ -20,9 +22,8 @@ class ReadmeImageReferences(unittest.TestCase):
         refs = IMG_SRC.findall(text) + MD_IMG.findall(text)
         return [r for r in refs if not r.startswith(("http://", "https://"))]
 
-    def test_readme_exists_and_references_at_least_one_local_image(self):
-        refs = self._local_refs()
-        self.assertGreaterEqual(len(refs), 1, "README lost its mascot header image")
+    def test_readme_exists(self):
+        self.assertTrue(README.is_file(), "README.md is missing")
 
     def test_all_local_image_references_resolve(self):
         for ref in self._local_refs():

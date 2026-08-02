@@ -1,169 +1,106 @@
 %% Example CV - [YOUR_NAME]
-%% Comprehensive overview of all competencies, experience, and achievements.
-%% Use as a master reference when tailoring role-specific CVs.
-%%
-%% SETUP: Run /setup to populate this with your actual information.
+%% Clean single-column resume template. Run /setup to populate it with your data.
 %% Compile with: lualatex main_example.tex
-%% (pdflatex often fails on modern MiKTeX with fontawesome5 font-expansion errors.)
+%%
+%% Style: article + Carlito (Calibri-metric font), blue ALL-CAPS section headings
+%% (no rules), summary as bullets, categorized skills, experience grouped by
+%% company with role sub-lines. Single-column = ATS-friendly.
+%%
+%% SETUP: replace every [PLACEHOLDER] with your real data. Some credentials may be
+%% kept profile-only (in 01-candidate-profile.md) and deliberately omitted here.
 
-\documentclass[11pt,a4paper,sans]{moderncv}
-\moderncvstyle{banking}
-\moderncvcolor{blue}
+\documentclass[11pt,letterpaper]{article}
 
-% Force both first and last name AND section headings to render in moderncv
-% blue (color1). Default banking on lualatex+MiKTeX leaves these black, which
-% looks inconsistent with the rest of the blue accent scheme.
-\renewcommand*{\firstnamestyle}[1]{{\fontsize{34}{36}\bfseries\upshape\color{color1}#1}}
-\renewcommand*{\lastnamestyle}[1]{{\fontsize{34}{36}\bfseries\upshape\color{color1}#1}}
-\renewcommand*{\sectionstyle}[1]{{\sectionfont\color{color1}#1}}
-
+\usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{hyperref}
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=blue,
-    pdftitle={[YOUR_NAME] - CV},
-    pdfpagemode=FullScreen,
-}
-\usepackage[scale=0.80]{geometry}
-\usepackage{import}
+\usepackage{carlito}                 % Calibri-metric font
+\renewcommand{\familydefault}{\sfdefault}
 
-% personal data
-\name{[First]}{[Last]}
-\address{[Your Address, City, Country]}{}{}
-\phone[mobile]{[+XX XXXXXXXXXX]}
-\email{[your.email@example.com]}
-\extrainfo{\href{[https://linkedin.com/in/your-profile]}{LinkedIn}, \href{[https://github.com/your-username]}{GitHub}}
+\usepackage[letterpaper,top=0.7in,bottom=0.7in,left=0.8in,right=0.8in]{geometry}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{cvblue}{HTML}{2E5496}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{needspace}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=cvblue, linkcolor=cvblue,
+            pdftitle={[YOUR_NAME] - CV}}
+
+% --- Vertical rhythm: tune these per version so the finalized content fills
+% --- two full pages (see "Two-page balance" in 05-cv-templates.md). More
+% --- content -> smaller values; less content -> larger values.
+\linespread{1.08}
+\titleformat{\section}{\color{cvblue}\bfseries\large}{}{0pt}{}
+\titlespacing*{\section}{0pt}{11pt}{5pt}
+\setlist[itemize]{leftmargin=1.5em, topsep=3pt, itemsep=2.5pt, parsep=0pt,
+                  label=\textbullet}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\pagestyle{empty}
+
+% Header helpers
+\newcommand{\cvname}[1]{\begin{center}{\color{cvblue}\bfseries\fontsize{20}{24}\selectfont #1}\end{center}}
+\newcommand{\cvcontact}[1]{\begin{center}#1\end{center}\vspace{-2pt}}
 
 \begin{document}
 
-\makecvtitle
+\cvname{[Your Name]}
+\cvcontact{[Address] | [Phone] | [Email] \\
+\href{https://www.linkedin.com/in/your-handle}{linkedin.com/in/your-handle} | \href{https://github.com/your-handle}{github.com/your-handle} | \href{https://your-website.com}{your-website.com}}
 
 % ============================================================
-%     PROFILE STATEMENT
-% ============================================================
-
-\vspace{6pt}
-\small{[Write a 3-5 line profile statement tailored to the role you're applying for. Focus on what makes you uniquely qualified. Example: "Data scientist with a PhD in [field] and X years of industry experience. Combines deep domain expertise in [domain] with strong applied machine learning and Python development skills. Experienced in developing end-to-end ML pipelines, from data ingestion to stakeholder-facing dashboards."]}
-
-% ============================================================
-%     CORE COMPETENCIES
-% ============================================================
-
-\section{Core Competencies}
-\vspace{1pt}
+\section*{SUMMARY}
 \begin{itemize}
-
-\item \textbf{[Skill Category 1]}: [Specific skills, frameworks, tools. Be concrete.]
-
-\item \textbf{[Skill Category 2]}: [Specific skills, frameworks, tools.]
-
-\item \textbf{[Skill Category 3]}: [Specific skills, frameworks, tools.]
-
-\item \textbf{[Skill Category 4]}: [Domain expertise, methods, approaches.]
-
-\item \textbf{[Skill Category 5]}: [Tools, platforms, software.]
-
+\item [Summary bullet 1: identity + years of experience + domain, tailored to the target role.]
+\item [Summary bullet 2: core strengths, the systems/architectures/methods you build.]
+\item [Summary bullet 3: signature expertise + an end-to-end ownership statement.]
 \end{itemize}
 
 % ============================================================
-%     PROFESSIONAL EXPERIENCE
-% ============================================================
-
-\section{Professional Experience}
-\vspace{3pt}
+\section*{TECHNICAL SKILLS}
 \begin{itemize}
-
-% --- Most Recent Role ---
-\item{\cventry{[YYYY--Present]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
-\begin{itemize}
-    \item [Achievement or responsibility 1 - be specific, use numbers where possible]
-    \item [Achievement or responsibility 2]
-    \item [Achievement or responsibility 3]
-    \item [Achievement or responsibility 4]
-\end{itemize}}}
-
-\vspace{3pt}
-
-% --- Previous Role ---
-\item{\cventry{[YYYY--YYYY]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
-\begin{itemize}
-    \item [Achievement or responsibility 1]
-    \item [Achievement or responsibility 2]
-    \item [Achievement or responsibility 3]
-\end{itemize}}}
-
-\vspace{3pt}
-
-% --- Earlier Role ---
-\item{\cventry{[YYYY--YYYY]}{[Job Title]}{[Company]}{[City, Country]}{}{\vspace{1pt}
-\begin{itemize}
-    \item [Achievement or responsibility 1]
-    \item [Achievement or responsibility 2]
-\end{itemize}}}
-
+\item Languages: [your languages, most relevant first]
+\item Frameworks \& Libraries: [your frameworks/libraries]
+\item Platforms \& Tools: [your platforms and tools]
+\item Databases \& Storage: [your databases/storage]
+\item AI coding tools: [e.g. Claude Code, and others you use]
+\item Certifications: [certifications you list on your CV]
 \end{itemize}
 
 % ============================================================
-%     EDUCATION
-% ============================================================
+\section*{PROFESSIONAL EXPERIENCE}
 
-\section{Education}
-\vspace{1pt}
+\needspace{5\baselineskip}
+\textbf{[Company],} [Division, if any] --- [City, State] | [YYYY.MM -- Present]
+
+[Most Recent Role Title] | [YYYY.MM -- Present]
 \begin{itemize}
+\item [Achievement or responsibility, specific, with numbers where possible.]
+\item [Achievement or responsibility.]
+\item [Achievement or responsibility.]
+\end{itemize}
 
-\item{\cventry{[YYYY--YYYY]}{[Degree] in [Field]}{[Institution]}{[City, Country]}{}{\vspace{1pt}
-Thesis: ``[Thesis Title].'' [Brief description of research focus.]
-}}
+% A second role at the SAME company: another role line + bullets, under the same header.
+[Earlier Role Title at the same company] | [YYYY.MM -- YYYY.MM]
+\begin{itemize}
+\item [Achievement or responsibility.]
+\item [Achievement or responsibility.]
+\end{itemize}
 
-\vspace{3pt}
+\needspace{5\baselineskip}
+\textbf{[Previous Company]} --- [City, State] | [YYYY.MM -- YYYY.MM]
 
-\item{\cventry{[YYYY--YYYY]}{[Degree] in [Field]}{[Institution]}{[City, Country]}{}{\vspace{1pt}
-[Brief description or key topics.]
-}}
-
+[Role Title]
+\begin{itemize}
+\item [Achievement or responsibility.]
+\item [Achievement or responsibility.]
 \end{itemize}
 
 % ============================================================
-%     LANGUAGES
-% ============================================================
+\section*{EDUCATION}
 
-\section{Languages}
-\vspace{1pt}
-\begin{itemize}
-\item [Language 1] (native), [Language 2] (fluent), [Language 3] (intermediate).
-\end{itemize}
+[Institution] --- [Degree] in [Field], [GPA / honors if strong] | [Month Year]
 
-% ============================================================
-%     PUBLICATIONS (optional)
-% ============================================================
-
-\section{Publications}
-\vspace{1pt}
-\begin{itemize}
-\item [Author(s)] ([Year]). [Title]. [Journal/Conference]. \href{[DOI_URL]}{DOI link}
-\end{itemize}
-
-% ============================================================
-%     HONORS AND AWARDS (optional)
-% ============================================================
-
-\section{Honors and Awards}
-\vspace{1pt}
-\begin{itemize}
-\item{\textbf{[Award Name]} -- [Event/Organization] ([Year]).}
-\end{itemize}
-
-% ============================================================
-%     REFERENCES
-% ============================================================
-
-\section{References}
-\vspace{1pt}
-\begin{itemize}
-\item{Available upon request.}
-\end{itemize}
+[Institution] --- [Degree] in [Field], [GPA / honors if strong] | [Month Year]
 
 \end{document}

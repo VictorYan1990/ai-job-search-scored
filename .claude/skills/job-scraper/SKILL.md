@@ -2,8 +2,8 @@
 name: scrape
 description: >
   Finds new job postings matching your profile via installed portal-search CLIs
-  (LinkedIn, local job boards, and any skills added with /add-portal). Deduplicates
-  across runs. Triggers on: job scrape, find jobs, search jobs, new jobs, job search,
+  (LinkedIn, local job boards, and any skills added with /add-portal). Skips only
+  firms/roles ruled out in suppression.yaml. Triggers on: job scrape, find jobs, search jobs, new jobs, job search,
   scrape jobs, /scrape
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bun --version), Bash(bun run .agents/skills/*/cli/src/cli.ts *), WebFetch, WebSearch, Agent, AskUserQuestion
 ---
@@ -16,8 +16,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bun --version), Bash(bun run 
 
 This skill searches job portals using the **installed portal-search CLIs** in
 `.agents/skills/` (plus WebSearch as a fallback), using queries from your profile.
-It deduplicates against previously seen jobs and the application tracker, and
-presents new matches with a quick fit assessment.
+It skips only jobs suppressed by `suppression.yaml` (active company cooldowns and
+forever position blocks), and presents all other matches with a quick fit
+assessment. `seen_jobs.json` and `job_search_tracker.csv` are stores/ledgers, not
+skip filters, so an open, non-suppressed role keeps appearing until it is applied
+to or ruled out.
 
 ## Invocation
 
@@ -38,9 +41,9 @@ Optional arguments:
 
 ### Step 0: Load State
 
-1. Read `job_scraper/seen_jobs.json` (create if missing - start with `{"seen": {}}`)
-2. Read `job_search_tracker.csv` to extract already-applied companies+roles
-3. Read `search-queries.md` (this directory) for the search strategy
+1. Read `job_scraper/seen_jobs.json` (create if missing - start with `{"seen": {}}`). This is the fit/score **store** and the hand-off to `/rank` - **not** a dedup filter.
+2. Read `search-queries.md` (this directory) for the search strategy
+3. Read `suppression.yaml` (repo root; skip if absent) - the **sole** skip authority. Parse `policy`, `employers`, `employer_positions`. Compute the **active employer set**: an `employers` rule is active when its reason maps to `forever` in `policy.employer`, or **today is on or before `last_updated` + `policy.employer[reason]` months**. Hold the active employer set and the full `employer_positions` list for the Step 2.6 filter.
 
 ### Step 1: Search
 
@@ -96,14 +99,27 @@ command (see its SKILL.md — do not guess flags) to extract **key requirements*
 fields manually.
 
 For every candidate:
-- Skip if the URL or company+title combo already exists in `seen_jobs.json`
-- Skip if the company+role already appears in `job_search_tracker.csv`
+- **Skip only if suppressed** by `suppression.yaml` (see Step 2.6). Suppression is the **sole** skip authority - never hide a job because it appears in `seen_jobs.json` or `job_search_tracker.csv`. An open, non-suppressed role reappears every run until it is applied to (which suppresses it via `/outcome`) or ruled out.
 
 ### Step 2.5: Mass-Posting Detection (within this run)
 
 A distribution pattern worth flagging to the user as a caution signal, not as an accusation against the employer - it describes how a listing is being distributed, not a verdict on whether the company is legitimate. It alone proves nothing is wrong (companies do legitimately hire the same role across several cities); flag it so the user can factor it in when deciding whether to invest time, don't downgrade fit or silently exclude the result because of it.
 
 If two or more results in this run's pool (from the same company, or sharing the same req/job ID visible in the URL or title) have substantially the same description and differ only in city/location/title, don't present them as separate rows. Consolidate into a single row and note the spread, e.g. "posted identically across 6 cities (BR, MX, GT)".
+
+### Step 2.6: Suppression Filter (`suppression.yaml`)
+
+Apply the two suppression levels loaded in Step 0. Match companies **case-insensitively and suffix-tolerant** (ignore `Inc`/`Corp`/`LLC`/`Ltd`/`Group` and trailing punctuation, so "Acme" == "Acme Inc." and "FooBar" == "Foo Bar"). When a listing is posted by a **staffing/recruiting agency** on behalf of another employer, match on the **real hiring employer** named in the posting, not the agency.
+
+- **Employer cooldown (whole company):** if the candidate's company is in the active employer set, drop it. Record it for the Step 5 `suppressed:` line with its reason and the date the cooldown ends (`last_updated` + policy months).
+- **Position block (exact role, forever):** if the candidate's (company, title) matches an `employer_positions` rule (exact title after the same normalization), drop it. A **differently-titled** role at the same company is not blocked by this rule; the employer cooldown, if active, still governs it.
+
+**Write-back — sponsorship facts only.** If a Step 2 `detail`/WebFetch shows the posting **states it does not sponsor** work visas (or requires citizenship, permanent residency, or a clearance the candidate cannot hold), record the firm in `suppression.yaml` as `Not Sponsor`, and **drop it from this run's results** (report it on the Step 5 `suppressed:` line, noting it was newly discovered):
+
+- **Firm not listed:** append an `employers` entry — `company`, `reason: Not Sponsor`, `last_updated: <today>`, and a short `comment` quoting the wording.
+- **Firm already listed with a weaker reason** (`Ghosted`, `Rejected`, `Declined after Interview`): **upgrade** it — set `reason: Not Sponsor`, refresh `last_updated: <today>`, and note the upgrade in `comment`. Reason strength is `BlackList` > `Not Sponsor` > `Declined after Interview` > `Rejected`/`Ghosted`; only ever move **up** this ladder.
+
+This (add or upgrade to `Not Sponsor`) is the **only** write `/scrape` makes. Never downgrade a `BlackList` or `Not Sponsor` entry, and never auto-add `Ghosted`/`Declined after Interview`/`BlackList` (those belong to the user and `/outcome`).
 
 ### Step 3: Quick Fit Assessment
 
@@ -113,7 +129,7 @@ For each new job, do a rapid fit check (NOT the full evaluation from `04-job-eva
 - **Medium match**: Role is adjacent to your experience
 - **Low match**: Role requires significant skills you lack
 
-### Step 4: Deduplicate & Store
+### Step 4: Store
 
 1. Add ALL fetched jobs (new and skipped) to `seen_jobs.json` with structure:
 ```json
@@ -136,7 +152,7 @@ The `portal` field records which CLI skill produced the job (results are already
 
 `/rank` extends this schema additively: ranked entries also carry `rank_score` (0–100 overall score), `rank_verdict` (fit band, e.g. "strong fit"), and `rank_date` (ISO date of ranking). The `status` field is set to `"ranked"`. Do not drop any of these fields when re-writing entries.
 
-2. Only present jobs NOT already in the seen list or tracker.
+2. Present every matching job that was not suppressed in Step 2.6. Do not filter by `seen_jobs.json` or the tracker - suppression is the only skip authority.
 
 ### Step 4.5: Generate Referral Contact Links (High & Medium Fit Only)
 
@@ -182,7 +198,7 @@ Scraper-based portal CLIs rot silently: when a portal changes its markup, the pa
 Present new jobs in a table sorted by fit (high first). When Step 1b skipped
 portals (`enabled: false`), report them with the `skipped (disabled):` line below
 so opting one out stays visible rather than silent; omit the line when nothing
-was skipped. When Step 4.75 found a portal degraded, broken, or inconclusive,
+was skipped. When Step 2.6 suppressed candidates via `suppression.yaml`, report them on a `suppressed:` line (company with its reason and cooldown-end date, or company + title for a position block); omit the line when nothing was suppressed. When Step 4.75 found a portal degraded, broken, or inconclusive,
 add one `health:` line per suspect portal (healthy portals get no line); after
 the report, offer to set that portal's `enabled: false` so `/scrape` stops
 running it (and covers it via the Step 1c fallback) until it is fixed - only
@@ -192,9 +208,10 @@ the skill.
 ```
 ## New Job Matches - YYYY-MM-DD
 
-Found X new positions (Y high, Z medium, W low match).
+Found X matching positions (Y high, Z medium, W low match). Suppression applied; results are not filtered by prior runs.
 
 skipped (disabled): <portal-name>, <portal-name>
+suppressed: <Company> (<reason>, until <date>), <Company> — <Title> (position block)
 
 health: <portal-name> - degraded (company null on all 12 results); parsing anchors in .agents/skills/<portal-name>/url-reference.md
 health: <portal-name> - broken (0 results for the SKILL.md test query and a broader retry); parsing anchors in .agents/skills/<portal-name>/url-reference.md
@@ -234,7 +251,7 @@ If the user decides to apply to any job, add a row to `job_search_tracker.csv`.
 ## Important Rules
 
 1. **Never fabricate job postings.** Only present jobs from actual CLI search/detail output or WebSearch/WebFetch results.
-2. **Respect deduplication.** Always check seen_jobs.json AND job_search_tracker.csv before presenting.
+2. **Dedup via suppression only.** Skip a job only when `suppression.yaml` suppresses it (active company cooldown or forever position block). `seen_jobs.json` is a store/hand-off and `job_search_tracker.csv` is a ledger - neither is consulted to hide jobs.
 3. **Focus on configured geographic area.** Skip jobs that require relocation or are clearly outside commute range.
 4. **Only open positions.** Skip postings with expired deadlines or those marked as closed.
 5. **Be efficient with detail fetches.** Don't run `detail` or WebFetch on every search hit — pre-filter by title/snippet, then fetch only promising matches.

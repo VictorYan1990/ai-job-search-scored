@@ -1,0 +1,52 @@
+# ============================================================================
+# suppression.example.yaml — template for the deterministic skip/cooldown list.
+#
+# Copy this to `suppression.yaml` (which is gitignored) and fill it in, or let
+# /setup, /outcome, /scrape, and /rank populate it for you. `suppression.yaml`
+# is the single skip authority for /scrape and /rank.
+#
+# A candidate job is SKIPPED when EITHER:
+#   (a) its company matches an ACTIVE rule in `employers`
+#       (active = today is on/before last_updated + the policy cooldown), OR
+#   (b) its (company, title) matches ANY rule in `employer_positions` (forever).
+#
+# Matching is case-insensitive and ignores common company suffixes
+# (Inc, Corp, LLC, "Group", recruiter-agency wrappers).
+#
+# Who writes it:
+#   - employers:          mostly YOU (manual), plus /scrape and /rank when a
+#                         fetched posting states it will not sponsor -> they add
+#                         reason: "Not Sponsor" with last_updated = today.
+#   - employer_positions: mostly /outcome, when an application resolves.
+# ============================================================================
+
+# --- Cooldown policy: reason -> months suppressed from last_updated -----------
+# "forever" = never show again. Tune freely; add your own reasons as new lines.
+policy:
+  employer:
+    BlackList: forever
+    Not Sponsor: 36              # e.g. 3 years
+    Declined after Interview: 6
+    Rejected: 3                  # explicit rejection without reaching an interview
+    Ghosted: 3                   # applied, never heard back
+  employer_position:
+    default: forever             # every position-level reason skips forever
+
+# --- Employer-level suppression (skips the whole company while active) --------
+# columns: company | reason | last_updated (YYYY-MM-DD) | comment (optional)
+employers: []
+  # - company: Example Corp
+  #   reason: Ghosted
+  #   last_updated: 2026-01-01
+  #   comment: ""
+
+# --- Position-level suppression (skips this exact company+title FOREVER) ------
+# columns: company | title | reason | last_updated (YYYY-MM-DD) | comment (optional)
+# Reasons: No Response | Rejected after Interview | Tech Stack Mismatch |
+#          Requirements Not Met | (add your own)
+employer_positions: []
+  # - company: Example Corp
+  #   title: Senior Software Engineer
+  #   reason: No Response
+  #   last_updated: 2026-01-01
+  #   comment: ""

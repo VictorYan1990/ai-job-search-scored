@@ -1,41 +1,23 @@
-<p align="center">
-  <img src="assets/mascot/pip_flight_loop.gif" alt="Pip, the courier bird" width="200">
-</p>
-
 # AI Job Search
 
 *The job search that runs on your machine.*
 
-<p align="center">
-  <a href="https://trendshift.io/repositories/43622?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-43622" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/43622/daily" alt="MadsLorentzen%2Fai-job-search | Trendshift" width="250" height="55"/></a>
-</p>
-
-[![CI](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml/badge.svg)](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml)
-
 An AI-powered job application framework built on [Claude Code](https://claude.com/claude-code). Fork it, fill in your profile, and let Claude evaluate job postings, tailor your CV, write cover letters, and prepare you for interviews.
+
+> **This is a fork** of [Mads Lorentzen's ai-job-search](https://github.com/MadsLorentzen/ai-job-search), retuned for US job seekers. See [What's different from upstream](#whats-different-from-upstream-tuned-for-us-job-seekers) below.
 
 > Note: This is an independent open-source project and is not affiliated with, endorsed by, sponsored by, or maintained by Anthropic. Anthropic and Claude Code are referenced only to describe the toolchain this workflow uses.
 >
-> This project has **no affiliated cryptocurrency, token, or paid sponsorship program**. Anything claiming otherwise is unauthorized and should be treated as a scam. The only ways to support the project are the Ko-fi link below and contributing on GitHub.
+> This project has **no affiliated cryptocurrency, token, or paid sponsorship program**. Anything claiming otherwise is unauthorized and should be treated as a scam. The only way to support the project is contributing on GitHub.
 
-## Does it actually work?
+## What's different from upstream (tuned for US job seekers)
 
-I'm a geophysicist by training. When my position was cut in late 2025, I built this framework to run my own job search - the same `/scrape`, `/apply`, and `/interview` workflow in this repo, used weekly, on my own career. I was upfront about it with every employer I spoke to, and instead of counting against me, it usually sparked a genuine technical conversation.
+Built on [Mads Lorentzen's ai-job-search](https://github.com/MadsLorentzen/ai-job-search), this fork retunes the workflow for the **US market** — where postings come mostly from LinkedIn and company career pages, the *same* role is often posted many times across locations, and work-authorization is frequently the deciding factor.
 
-Sixty-nine tailored applications, twenty first interviews, and one signed contract later, I started as an AI engineer in June 2026. People kept asking whether this actually works. It got me hired. Now it's yours.
-
-*The longer version, including the full application funnel, is on [LinkedIn](https://www.linkedin.com/in/mads-lorentzen/).*
-
-<p align="center">
-  <i>Did this save you a Sunday of cover-letter writing? Consider a coffee.<br>
-  Did it land you the job? Maybe two.</i> ☕
-</p>
-
-<p align="center">
-  <a href="https://ko-fi.com/madslorentzen">
-    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=6" alt="Buy me a coffee at ko-fi.com" height="40">
-  </a>
-</p>
+- **A comprehensive, deterministic "Target" score.** Beyond *can you do the job* (Fit), every posting gets a **Target** score — how much you'd actually *want* it — across six dimensions: salary (estimated total comp), industry, role subcategory, company reputation, size/stage, and work-life balance. It deliberately converts fuzzy, AI-judgmental preference into **repeatable metrics** (explicit tiers, anchors, and rules), so ranking stays consistent run-to-run instead of vibe-based. `/rank` and `/apply` report Fit, Target, and a blended Overall.
+- **Deterministic de-duplication for LinkedIn-style feeds.** US boards surface the same role many times and re-post constantly. A `suppression.yaml` replaces fragile URL-based dedup with company-level cooldowns and permanent per-role blocks, self-updating from `/outcome`, `/scrape`, and `/rank`.
+- **Work-authorization as a first-class filter.** For visa-needing applicants, sponsorship is often make-or-break: the evaluation gate hard-skips no-sponsorship / citizenship-only postings, and the suppression list remembers firms that don't sponsor so they stop resurfacing.
+- **Extended `/setup`** onboards these scoring and dedup preferences (all placeholders — make them yours).
 
 ## What this is
 
@@ -120,7 +102,7 @@ This searches multiple job portals for positions matching your profile, deduplic
 ### 5. Apply to a job
 
 ```bash
-/apply https://jobindex.dk/job/1234567
+/apply https://www.linkedin.com/jobs/view/1234567890
 ```
 
 If the URL can't be fetched (some job portals block automated access), you can paste the job description directly instead:
@@ -141,7 +123,7 @@ Postings are treated as untrusted input (the workflow follows no instructions em
 - **`/outcome`** records what happened to an application - interview stages, offers, rejections, silence. It archives the submitted CV, cover letter, and posting text into `documents/applications/<company>_<role>/`, keeps `outcome.md` in the format `/setup` Path A parses, and updates the tracker. It also owns the stretch before there is an outcome to record: `/outcome followup` surfaces open applications that have gone quiet (default 10 days), drafts a short channel-appropriate follow-up in your writing style using only claims from the materials you already submitted (drafts only, never sends; at most twice per application), and offers a thank-you note in the same turn an interview stage is recorded. Once a few applications resolve, it points you back to `/setup` to calibrate the fit framework from what actually got interviews.
 - **`/notion-sync`** publishes a one-way, read-only view of the pipeline into a Notion database via the official Notion MCP server (OAuth, no API keys) - one row per ranked job plus every tracked application, with a write-once briefing page per row. The repo files stay the system of record: nothing syncs back, and documents sync as filenames only. Complements `/html-report`: that is the deep offline dashboard you regenerate at your desk; this is the glanceable live view from anywhere Notion runs (desktop, web, phone).
 - **`/gmail-sync`** reads your Gmail (via the Gmail connector) for status signals on your open applications - interview invites, assessment links, offers, rejections - and proposes them as a batch for you to approve before anything is written to the tracker or `outcome.md`, citing the source email on every proposed change. Offers stop short of proposing `hired`/`offer_declined` since that's your call; conflicting or unmatched signals get flagged for a manual `/outcome` pass instead of guessed.
-- **`/rank`** bridges `/scrape` and `/apply`: it batch-scores all newly scraped postings against the fit framework (parallel agents fetch each posting and score the five evaluation dimensions) and returns a ranked shortlist with honest per-job strengths and gaps. Deal-breakers veto, deadlines get urgency flags, dead postings get marked expired. Pick a number and it hands off to the full `/apply` workflow.
+- **`/rank`** bridges `/scrape` and `/apply`: it batch-scores all newly scraped postings on the two-axis Fit/Target framework (parallel agents fetch each posting and score both axes) and returns a ranked shortlist — sorted by the blended Overall — with honest per-job strengths and gaps. Deal-breakers veto, deadlines get urgency flags, dead postings get marked expired. Pick a number and it hands off to the full `/apply` workflow.
 - **`/expand`** enriches your profile by scanning public sources you've already linked in it (GitHub repos, portfolio site, Kaggle, Google Scholar) and looking up syllabi for named courses and certifications. Discovered competencies are added to your profile with a source tag. Useful right after `/setup` to surface skills that documents alone don't make explicit.
 - **`/upskill`** analyzes the gap between your profile and your tracked job postings (or a single posting via `/upskill <URL>`). Produces a prioritized heatmap of skill gaps and a learning plan with web-searched study resources and time estimates. Useful for career planning between applications.
 - **`/html-report`** generates a self-contained HTML dashboard from `job_search_tracker.csv` and the application archives — stat cards, status/sector/channel/funnel charts (inline SVG, no external dependencies), and a filterable applications table. Opens directly in a browser, fully offline. Re-run it any time after `/outcome` adds new entries.
@@ -175,7 +157,7 @@ ai-job-search/
 │   │   │   ├── 01-candidate-profile.md # Your education, experience, skills
 │   │   │   ├── 02-behavioral-profile.md# PI/DISC/personality assessment
 │   │   │   ├── 03-writing-style.md    # Tone, structure, do's and don'ts
-│   │   │   ├── 04-job-evaluation.md   # Scoring framework for job fit
+│   │   │   ├── 04-job-evaluation.md   # Two-axis Fit/Target scoring framework
 │   │   │   ├── 05-cv-templates.md     # LaTeX CV structure + tailoring rules
 │   │   │   ├── 06-cover-letter-templates.md # LaTeX cover letter templates
 │   │   │   └── 07-interview-prep.md   # STAR examples + interview framework
@@ -190,7 +172,7 @@ ai-job-search/
 │   ├── linkedin-search/               # LinkedIn public job listings (country-agnostic)
 │   └── freehire-search/               # freehire.me tech job aggregator (multi-market, REST API)
 ├── cv/
-│   └── main_example.tex               # moderncv LaTeX template
+│   └── main_example.tex               # single-column LaTeX CV template
 ├── cover_letters/
 │   ├── cover.cls                      # Custom cover letter LaTeX class
 │   ├── cover_example.tex              # Example cover letter (structural reference + CI smoke test)
@@ -223,7 +205,7 @@ ai-job-search/
 The `/apply` command runs a **drafter-reviewer workflow** with mandatory PDF compilation:
 
 1. **Parse** the job posting (URL or text)
-2. **Evaluate fit** against your profile (skills, experience, culture, location, career alignment)
+2. **Evaluate** the posting on the two-axis Fit/Target framework (background match + desirability), gated by hard deal-breakers
 3. **Draft** a tailored CV and cover letter in LaTeX
 4. **Spawn a reviewer agent** that researches the company and critiques the drafts
 5. **Revise** based on the reviewer's feedback
@@ -269,7 +251,7 @@ This re-runs the search configuration interview: which roles to target, which sk
 
 ### Custom templates
 
-The CV uses [moderncv](https://ctan.org/pkg/moderncv) (banking style). The cover letter uses a custom `cover.cls` with Lato/Raleway fonts. Both are LaTeX — the reference engine this repo ships and maintains.
+The CV uses a clean single-column LaTeX template (Calibri-style). The cover letter uses a custom `cover.cls` with Lato/Raleway fonts. Both are LaTeX — the reference engine this repo ships and maintains.
 
 To use your own template instead — LaTeX, [Typst](https://typst.app/), or any other toolchain that compiles to PDF from the command line — run:
 
@@ -281,7 +263,7 @@ Point it at your source file (a `.tex` file plus any `.cls`/`.sty` files or bund
 
 - `/add-template --list` shows registered templates
 - `/add-template --use <name>` switches between them
-- `/add-template --use default` reverts to the stock moderncv / cover.cls templates
+- `/add-template --use default` reverts to the stock single-column CV / cover.cls templates
 
 If you prefer doing it by hand, the manual route still works: update the guidance in `05-cv-templates.md` and `06-cover-letter-templates.md`.
 
@@ -347,9 +329,10 @@ Thinking about a PR? Read [CONTRIBUTING.md](CONTRIBUTING.md) first - it explains
 
 ## Acknowledgements
 
+- Forked from [Mads Lorentzen's **ai-job-search**](https://github.com/MadsLorentzen/ai-job-search) (MIT) — the upstream project this builds on. The original author's account of running their own search with it is on [LinkedIn](https://www.linkedin.com/in/mads-lorentzen/).
 - [Mikkel Krogholm](https://github.com/mikkelkrogsholm) ([skills repo](https://github.com/mikkelkrogsholm/skills)) for the job search CLI skills
 - Built with [Claude Code](https://claude.com/claude-code) by [Anthropic](https://anthropic.com)
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). Copyright © 2026 Mads Lorentzen (upstream) and Victor Yan (this fork).

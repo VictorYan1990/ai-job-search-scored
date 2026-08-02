@@ -1,8 +1,9 @@
 # /outcome - Record the Result of an Application
 
-You are recording what happened to a job application: progress updates (interview invitations, stages completed, offers) and final resolutions (hired, rejected, no response). The data lands in two places the framework already reads but nothing systematically writes:
+You are recording what happened to a job application: progress updates (interview invitations, stages completed, offers) and final resolutions (hired, rejected, no response). The data lands in three places the framework already reads but nothing systematically writes:
 
 - `job_search_tracker.csv` - the status column that `/scrape` and `/rank` use for dedup and exclusion
+- `suppression.yaml` (repo root) - the deterministic skip/cooldown list `/scrape` and `/rank` honor: a company-level cooldown and a forever position-level block, keyed off this resolution (Step 4b)
 - `documents/applications/<company>_<role>/` - the per-application archive (posting, submitted drafts, `outcome.md`) that `/setup` Path A mines to calibrate `04-job-evaluation.md` and surface STAR candidates
 
 `/outcome` writes the data; `/setup` interprets it. This command never edits the evaluation framework or profile files itself.
@@ -125,6 +126,31 @@ Update the matched row's `status` column (e.g. `applied` → `interview` → `of
 
 ---
 
+## Step 4b: Update Suppression List (`suppression.yaml`)
+
+On a **resolution** (not progress updates, and never for `hired`), record the decision in `suppression.yaml` at the repo root so `/scrape` and `/rank` honor the lockdown. Create the file from its documented structure if it does not exist. Both writes are idempotent: match the company case-insensitively and suffix-tolerant, updating an existing entry's `last_updated` in place rather than duplicating.
+
+**1. Employer entry (company-level cooldown).** Map the resolution to a reason and set `last_updated` to **today** (the execution date):
+
+| Resolution | employer `reason` | cooldown (from `policy`) |
+|-----------|-------------------|--------------------------|
+| `no_response` | `Ghosted` | 3 months |
+| `rejected`, no interview reached | `Rejected` | 3 months |
+| `rejected` or `interview_only`, interview reached | `Declined after Interview` | 6 months |
+| `offer_declined` | none by default — ask the user whether to add a cooldown | — |
+| `hired` | none | — |
+
+Never **downgrade** an existing stronger rule: if the company already carries `BlackList` or `Not Sponsor`, leave it. If during Step 2 the user gives a hard reason ("they don't sponsor", "never again"), set `Not Sponsor` (36 months) or `BlackList` (forever) instead of the outcome-derived reason.
+
+**2. Position entry (exact role, forever).** Append or refresh an `employer_positions` rule with the company and the **exact role title**, `last_updated` = today, and `reason`:
+- interview reached → `Rejected after Interview`
+- `no_response` → `No Response`
+- `rejected` (no interview) → `Rejected`
+
+Only touch the two lists. Never edit the `policy` block, and never alter a user-authored entry beyond updating its `last_updated` when this same application resolves again.
+
+---
+
 ## Step 5: Calibration Handoff
 
 Count the `outcome.md` files under `documents/applications/` with a **final** status (not `in_progress`).
@@ -144,6 +170,7 @@ Summarize what was recorded:
 > - `documents/applications/<company>_<role>/outcome.md` - status: <status>, <what changed>
 > - Archived: <which of cv_draft.tex / cover_letter.tex / job_posting.md were copied or fetched, and which were skipped and why>
 > - Tracker: status → <new status>
+> - Suppression: <employer entry added/updated - reason, cooldown until date>; <position block added>
 >
 > [Calibration suggestion from Step 5, if triggered]
 
